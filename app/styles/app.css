@@ -1,0 +1,10 @@
+.ember-application, .ember-view {
+  height: 100%;
+  background-color: #eee;
+}
+
+.app-login {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
