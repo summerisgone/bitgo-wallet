@@ -2,25 +2,42 @@
   <div class="ui container">
     <div class="ui large secondary inverted pointing menu">
       <a class="active item">My Wallet</a>
-      <a class="item" onclick={{action 'openModal' 'send-modal'}}>
-        <i class="mail outline icon"></i>
-        Send
+      <a class="item" onclick= {{action 'openModal' 'send-modal'}}>
+        <i class="mail outline icon"></i> Send
       </a>
-      <a class="item" onclick={{action 'openModal' 'receive-modal'}}>
-        <i class="money icon"></i>
-        Receive
+      <a class="item" onclick= {{action 'openModal' 'receive-modal'}}>
+        <i class="money icon"></i> Receive
       </a>
       <div class="item right">
         <div class="item">Signed in as <span class="wallet-id">123456</span></div>
-        {{#link-to 'login' class='ui inverted button'}}
+        {{#link-to 'login' class='ui inverted button' }}
           Sign out
         {{/link-to}}
       </div>
     </div>
   </div>
 </div>
-{{send-modal}}
-{{receive-modal}}
+{{send-modal}} {{receive-modal}}
+<div class="ui vertical segment">
+  <div class="ui main text container">
+    <div class="ui two column grid">
+      <div class="column">
+        <h1 class="ui header">
+          My BitGo Wallet
+          <span class="sub header">
+            2MtwAh6wgwBz4aC6SAaJnwG7ZJvG8M6pWd8
+          </span>
+        </h1>
+      </div>
+      <div class="column">
+        <div class="ui header right aligned">
+          0.0720 BTC
+          <div class="sub header">$ 89.67 USD</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="ui vertical segment">
   <div class="ui main text container">
     <h1 class="ui header">Operations</h1>
