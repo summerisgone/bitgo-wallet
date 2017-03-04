@@ -4,7 +4,7 @@ export default Ember.Controller.extend({
   actions: {
     openModal: function(name) {
       console.log('openModal controller');
-      $('.ui.' + name + '.modal').modal('show');
+      Ember.$('.ui.' + name + '.modal').modal('show');
     }
   }
 });
