@@ -2,11 +2,11 @@
   <div class="ui container">
     <div class="ui large secondary inverted pointing menu">
       <a class="active item">My Wallet</a>
-      <a class="item"  onclick={{action 'openModal' 'send-modal'}}>
+      <a class="item" onclick={{action 'openModal' 'send-modal'}}>
         <i class="mail outline icon"></i>
         Send
       </a>
-      <a class="item">
+      <a class="item" onclick={{action 'openModal' 'receive-modal'}}>
         <i class="money icon"></i>
         Receive
       </a>
@@ -20,6 +20,7 @@
   </div>
 </div>
 {{send-modal}}
+{{receive-modal}}
 <div class="ui vertical segment">
   <div class="ui main text container">
     <h1 class="ui header">Operations</h1>

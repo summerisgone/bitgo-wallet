@@ -8,3 +8,6 @@
   display: flex;
   flex-direction: column;
 }
+.app-receive-modal__image {
+  text-align: center;
+}

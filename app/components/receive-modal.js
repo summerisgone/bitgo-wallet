@@ -1,4 +1,6 @@
-import Ember from 'ember';
+import UiModal from 'semantic-ui-ember/components/ui-modal';
 
-export default Ember.Component.extend({
+export default UiModal.extend({
+  name: 'receive-modal',
+  classNames: ['receive-modal', 'small']
 });
