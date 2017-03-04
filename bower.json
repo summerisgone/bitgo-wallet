@@ -1,5 +1,6 @@
 {
   "name": "bitgo-wallet",
   "dependencies": {
+    "semantic-ui": "^2.2.9"
   }
 }
