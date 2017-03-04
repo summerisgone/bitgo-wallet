@@ -12,7 +12,9 @@
       </a>
       <div class="item right">
         <div class="item">Signed in as <span class="wallet-id">123456</span></div>
-        <a class="ui inverted button">Sign out</a>
+        {{#link-to 'login' class='ui inverted button'}}
+          Sign out
+        {{/link-to}}
       </div>
     </div>
   </div>

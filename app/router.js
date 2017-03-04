@@ -8,6 +8,7 @@ const Router = Ember.Router.extend({
 
 Router.map(function() {
   this.route('wallet');
+  this.route('login');
 });
 
 export default Router;
