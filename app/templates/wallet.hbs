@@ -1,11 +1,10 @@
-<div class="ui masthead inverted vertical segment">
+<div class="ui inverted vertical segment">
   <div class="ui container">
     <div class="ui large secondary inverted pointing menu">
       <a class="active item">My Wallet</a>
-      <a class="item"  onclick="{{action 'openModal' 'send-modal'}}">
+      <a class="item"  onclick={{action 'openModal' 'send-modal'}}>
         <i class="mail outline icon"></i>
         Send
-        {{send-modal}}
       </a>
       <a class="item">
         <i class="money icon"></i>
@@ -20,17 +19,18 @@
     </div>
   </div>
 </div>
-<div class="ui masthead vertical segment">
+{{send-modal}}
+<div class="ui vertical segment">
   <div class="ui main text container">
     <h1 class="ui header">Operations</h1>
     <div class="ui segments">
-      <h3 class="ui centered header">
+      <h3 class="ui top attached header centered">
         Today
       </h3>
-      <div class="ui segment">
+      <div class="ui attached segment">
         <p><strong>$100</strong>Payment</p>
       </div>
-      <div class="ui segment">
+      <div class="ui attached segment">
         <p><strong>$100</strong>Payment</p>
       </div>
       <div class="ui segment attached">
@@ -45,6 +45,4 @@
     </div>
   </div>
 </div>
-
-
 {{outlet}}

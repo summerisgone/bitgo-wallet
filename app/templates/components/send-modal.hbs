@@ -1,24 +1,31 @@
 <i class="close icon"></i>
 <div class="header">
-  Archive Old Messages
+  Send money
 </div>
-<div class="image content">
-  <div class="image">
-    <i class="archive icon"></i>
-  </div>
-  <div class="description">
-    <p>Your inbox is getting full, would you like us to enable automatic archiving of old messages?</p>
+<div class="content">
+  <div class="ui form">
+    <div class="field">
+      <label for="amount">Amount</label>
+      <div class="ui right labeled input">
+        <input type="text" name="amount" placeholder="0.001">
+        <div class="ui basic label">
+          BTC
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="reciever">Receiver</label>
+      <input type="text" name="receiver" placeholder="Enter wallet ID">
+    </div>
   </div>
 </div>
 <div class="actions">
-  <div class="two fluid ui inverted buttons">
-    <div class="ui red basic inverted button" onclick="{{action 'no'}}">
-      <i class="remove icon"></i>
-      No
+  <div class="two fluid ui buttons">
+    <div class="ui red basic button">
+      <i class="remove icon"></i> Cancel
     </div>
-    <div class="ui green basic inverted button" onclick="{{action 'yes'}}">
-      <i class="checkmark icon"></i>
-      Yes
+    <div class="ui green basic button">
+      <i class="checkmark icon"></i> Send
     </div>
   </div>
 </div>
