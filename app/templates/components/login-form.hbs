@@ -1,0 +1,28 @@
+<div class="ui middle aligned center aligned grid app-login">
+  <div class="six wide column">
+    <h2 class="ui header">
+        Log-in to your account
+    </h2>
+    <div class="ui segment left aligned">
+      <form class="ui form {{if errorMessage 'error'}}" {{action 'authenticate' on='submit'}}>
+        <div class="field">
+          <label>Username</label>
+          {{input id='username' placeholder='Enter Username' value=username}}
+        </div>
+        <div class="field">
+          <label>Password</label>
+          {{input type='password' id='password' placeholder='Password' value=password}}
+        </div>
+        <div class="field">
+          <label>OTP Password</label>
+          {{input id='otp' placeholder='OTP Password' value=otp}}
+        </div>
+        {{#if errorMessage}}
+        <div class="ui error message">{{errorMessage}}</div>
+        {{/if}}
+        <button type="submit" class="ui submit button">Login</button>
+      </form>
+      <div class="ui dimmer {{if loading 'active'}}"></div>
+    </div>
+  </div>
+</div>
