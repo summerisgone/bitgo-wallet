@@ -15,7 +15,6 @@
     "test": "ember test"
   },
   "devDependencies": {
-    "bitgo": "2.2.0",
     "broccoli-asset-rev": "^2.4.5",
     "ember-ajax": "^2.4.1",
     "ember-browserify": "^1.1.13",
@@ -37,7 +36,6 @@
     "ember-export-application-global": "^1.0.5",
     "ember-load-initializers": "^0.6.0",
     "ember-resolver": "^2.0.3",
-    "ember-simple-auth": "1.2.0",
     "ember-source": "~2.11.0",
     "ember-welcome-page": "^2.0.2",
     "loader.js": "^4.0.10",

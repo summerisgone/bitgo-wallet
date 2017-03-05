@@ -6,6 +6,14 @@ module.exports = function(defaults) {
   var app = new EmberApp(defaults, {
     // Add options here
   });
+  app.import ('vendor/BitGoJS.js', {
+    using: [
+      {
+        transformation: 'amd',
+        as: 'bitgo'
+      }
+    ]
+  });
 
   // Use `app.import` to add additional libraries to the generated
   // output files.
