@@ -1,87 +1,33 @@
-import Connection from 'observable-connection';
-import Promise from 'bluebird';
-import BitGo from '../vendor/BitGoJS';
-import rx from 'rxjs';
+'use strict';
+const assert = require('assert');
+const rx = require('rxjs');
 
-function token() {
-    return rx.BehaviorSubject('');
-}
-
-function sdk(conn) {
-    const token = conn.inject('token');
-    return token.map(t => new BitGo({accessToken: t})).shareReplay(1);
-}
-
-function session(conn) {
-    const sessionSubject = new rx.BehaviorSubject();
-    const sdk = conn.inject('sdk');
-    return sdk.flatMapLatest(sdk => {
-        const session = Promise.promisify(sdk.session);
-        return session({})
-    })
-        .scan((acc, cur) => {
-            return Object.assign({}, curr, acc);
-        }, {})
-        .shareReplay(1);
-}
-
-function auth(conn) {
-    const loginSubject = new rx.BehaviorSubject();
-    const sdk = conn.inject('sdk');
-    const token = conn.inject('token');
-    let _sdkInstance;
-
-    const plugin = rx.Observable.combineLatest(loginSubject, sdk)
-    .map((loginSubject, sdk) => {
-        _sdkInstance = sdk;
-        return loginSubject;
-    })
-    .scan((acc, cur) => {
-        return Object.assign({}, curr, acc);
-    }, {})
-    .shareReplay(1);
-    plugin.authenticate = (username, password, otp) => {
-        _sdkInstance.authenticate({username, password, otp}, (err, data) => {
-            loginSubject.next({error: err, auth: data, action: 'authenticate'});
+class Connection {
+    constructor (options) {
+        this.options = Object.assign({}, options);
+        assert(this.options.plugins, 'options.plugins is required');
+        assert(this.options.plugins.length, 'options.plugins should be array of plugins');
+        this.collectPlugins(this.options.plugins);
+    }
+    collectPlugins (plugins) {
+        // pre-register
+        this._pluginFns = {};
+        plugins.forEach(plugin => {
+            assert(plugin.name, `Plugin name should be defined for ${plugin}`);
+            this._pluginFns[plugin.name] = plugin;
+        });
+        // instantiate
+        this.plugins = {};
+        plugins.forEach(plugin => {
+            this.plugins[plugin.name] = this.inject(plugin.name);
         });
     }
-    plugin.logout = () => {
-        _sdkInstance.logout({}, err => {
-            if (err) {
-                loginSubject.next({error: err, action: 'logout'});
-            } else {
-                loginSubject.next({error: null, auth: null, action: 'logout'});
-            }
-        })
+    inject (pluginName) {
+        const pluginFn = this._pluginFns[pluginName];
+        assert(pluginFn, `Can't instantiate plugin ${pluginName}: it is ${this._pluginFns[pluginName]}`);
+        const instance = pluginFn(this);
+        assert(instance instanceof rx.Observable, `Plugin ${pluginName} doesn't return rx.Observable instance`);
+        return instance;
     }
-    return plugin;
 }
-
-function wallets(conn) {
-    // const walletSubject = new rx.BehaviorSubject([]);
-    const loadingSubject = new rx.BehaviorSubject();
-    const sdk = conn.inject('sdk');
-    const session = conn.inject('session');
-    const walletSubject = rx.Observable
-        .combineLatest(session, sdk)
-        .flatMapLatest(([session, sdk]) => {
-            const wallets = Promise.promisify(sdk.wallets);
-            loadingSubject.next(true);
-            return wallets({}).always(() => {
-                loadingSubject.next(false);
-            });
-        })
-        .shareReplay(1);
-    walletSubject.loading = loadingSubject;
-    return walletSubject;
-}
-
-const connection = new Connection({plugins: [
-    token,
-    sdk,
-    auth,
-    session,
-    wallets
-]});
-
-export default connection;
+module.exports = Connection;
