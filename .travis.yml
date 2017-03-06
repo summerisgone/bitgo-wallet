@@ -8,20 +8,14 @@ sudo: false
 cache:
   directories:
     - $HOME/.cache # includes bowers cache
-    - $HOME/.yarn-cache
+    - $HOME/.npm
 
 before_install:
   - npm config set spin false
   - npm install -g codeclimate-test-reporter
-  # Repo for Yarn
-  - sudo apt-key adv --keyserver pgp.mit.edu --recv D101F7899D41F3C3
-  - echo "deb http://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-  - sudo apt-get update -qq
-  - sudo apt-get install -y -qq yarn
-
 
 install:
-  - yarn install
+  - npm install
 
 script:
-  - yarn run test
+  - npm run test
