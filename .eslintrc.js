@@ -5,29 +5,29 @@ module.exports = {
         "es6": true,
         "node": true
     },
-    "extends": "eslint:recommended",
-    "plugins": [
-        "standard",
-        "promise"
+    "extends": [
+        "eslint:recommended", "plugin:react/recommended"
     ],
+    "plugins": [
+        "standard", "promise", "react"
+    ],
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        }
+    },
     "rules": {
         "no-trailing-spaces": "error",
         // "no-var": "error",
         "indent": [
-            "error",
-            4
+            "error", 4
         ],
         "linebreak-style": [
-            "error",
-            "unix"
+            "error", "unix"
         ],
         "quotes": [
-            "error",
-            "single"
+            "error", "single"
         ],
-        "semi": [
-            "error",
-            "always"
-        ]
+        "semi": ["error", "always"]
     }
 }

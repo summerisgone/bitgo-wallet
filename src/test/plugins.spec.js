@@ -3,7 +3,6 @@ const plugins = require('../plugins');
 const Connection = require('../connection');
 const assert = require('assert');
 const sinon = require('sinon');
-const Promise = require('bluebird');
 
 describe('plugins', function() {
     it('exports list of plugins', () => {

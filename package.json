@@ -1,7 +1,8 @@
 {
-  "name": "bitgo-wallet2",
+  "name": "bitgo-wallet",
   "version": "1.0.0",
-  "description": "",
+  "description": "Test project based on React",
+  "repository": "https://github.com/summerisgone/bitgo-wallet",
   "main": "src/app.js",
   "scripts": {
     "build": "webpack -p",
