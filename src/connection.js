@@ -25,7 +25,8 @@ class Connection {
     inject (pluginName) {
         const pluginFn = this._pluginFns[pluginName];
         assert(pluginFn, `Can't instantiate plugin ${pluginName}: it is ${this._pluginFns[pluginName]}`);
-        const instance = pluginFn(this);
+        const instance = this.plugins[pluginName] || pluginFn(this);
+        this.plugins[pluginName] = instance;
         assert(instance instanceof rx.Observable, `Plugin ${pluginName} doesn't return rx.Observable instance`);
         return instance;
     }

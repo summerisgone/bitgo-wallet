@@ -1,9 +1,11 @@
+'use strict';
 import React from 'react'
 import ReactDOM from 'react-dom'
 import plugins from './plugins'
 import Connection from './connection'
+import {BitGo} from '../vendor/BitGoJS';
 
-const connection = new Connection({plugins})
+const connection = new Connection({plugins, BitGo})
 
 class BaseComponent extends React.Component {
     constructor(props) {

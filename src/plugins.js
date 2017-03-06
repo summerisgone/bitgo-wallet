@@ -1,7 +1,6 @@
 'use strict';
 const Promise = require('bluebird');
 const rx = require('rxjs');
-const BitGo = require('../vendor/BitGoJS');
 
 rx.Observable.catchPromise = function catchPromise(promise) {
     return rx.Observable.defer(() => {
@@ -23,8 +22,7 @@ function token() {
 function sdk(conn) {
     const token = conn.inject('token');
     return token.distinct().map(t => {
-        console.log(`creating new SDK '${t}'`);
-        const sdk = new BitGo({accessToken: t});
+        const sdk = new conn.options.BitGo({accessToken: t});
         ['session', 'authenticate', 'wallets'].forEach(method => {
             sdk[method] = Promise.promisify(sdk[method]);
         });
