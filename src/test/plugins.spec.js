@@ -65,3 +65,59 @@ describe('sdk plugin', function() {
         assert(spy.calledWith({accessToken: '1'}));
     });
 });
+
+describe('authentication', function() {
+    let BitGo, connection, spy, subscriptions = [], auth = false;
+    beforeEach(function() {
+        spy = sinon.spy();
+        BitGo = class {
+            constructor(options) {
+                spy(options);
+            }
+            authenticate(obj, cb) {
+                auth = true;
+                cb(null, {status: 200, data: {access_token: '123123'}});
+            }
+            session(obj, cb) {
+                if (auth) {
+                    cb(null, {session: true});
+                } else {
+                    cb({status: 401}, null);
+                }
+            }
+            wallets(obj, cb) {
+                cb(null, {wallets: true, success: true});
+            }
+        };
+        connection = new Connection({plugins, BitGo});
+    });
+    afterEach(function() {
+        subscriptions.forEach(s => s.unsubscribe());
+    });
+
+    it('can handle session error', done => {
+        subscriptions.push(
+            connection.plugins.session.subscribe(response => {
+                assert.equal(response.error.status, 401);
+                done();
+            })
+        );
+    });
+
+    it('can re-authorize session', (done) => {
+        const spy = sinon.spy();
+        const unauthorized = connection.plugins.session.filter(s => s.error && s.error.status === 401);
+        subscriptions.push(
+            connection.plugins.session.subscribe(response => {
+                spy(response);
+                if (spy.callCount === 2) {
+                    done();
+                }
+            })
+        );
+        subscriptions.push(connection.plugins.auth.subscribe(() => {}));
+        subscriptions.push(
+            unauthorized.subscribe(()=> connection.plugins.auth.authenticate({username: 'admin@example.com'}))
+        );
+    });
+});

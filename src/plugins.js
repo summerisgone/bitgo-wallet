@@ -2,7 +2,7 @@
 const Promise = require('bluebird');
 const rx = require('rxjs');
 
-rx.Observable.catchPromise = function catchPromise(promise) {
+function catchPromise (promise) {
     return rx.Observable.defer(() => {
         const subject = new rx.AsyncSubject();
         promise.then(value => {
@@ -13,7 +13,7 @@ rx.Observable.catchPromise = function catchPromise(promise) {
         });
         return subject;
     });
-};
+}
 
 function token() {
     return new rx.BehaviorSubject('');
@@ -33,46 +33,43 @@ function sdk(conn) {
 function session(conn) {
     const sdk = conn.inject('sdk');
     return sdk.switchMap(sdk => {
-        return rx.Observable.catchPromise(sdk.session({}).then(response => {
+        return catchPromise(sdk.session({}).then(response => {
             return {session: response, error: null};
         }, error => {
             return {error};
         }));
     }).scan((acc, curr) => {
-        return Object.assign({}, curr, acc);
+        return Object.assign({}, acc, curr);
     }, {}).publishReplay().refCount();
 }
 
 function auth(conn) {
-    const loginSubject = new rx.BehaviorSubject();
+    const authActions = new rx.ReplaySubject();
     const sdk = conn.inject('sdk');
-    let _sdkInstance;
+    const token = conn.inject('token');
 
-    const plugin = rx.Observable.combineLatest(loginSubject, sdk).map((loginSubject, sdk) => {
-        _sdkInstance = sdk;
-        return loginSubject;
-    }).scan((acc, curr) => {
-        return Object.assign({}, curr, acc);
-    }, {}).publishReplay().refCount();
-    plugin.authenticate = (username, password, otp) => {
-        _sdkInstance.authenticate({
-            username,
-            password,
-            otp
-        }, (err, data) => {
-            loginSubject.next({error: err, auth: data, action: 'authenticate'});
-        });
-    };
-    plugin.logout = () => {
-        _sdkInstance.logout({}, err => {
-            if (err) {
-                loginSubject.next({error: err, action: 'logout'});
-            } else {
-                loginSubject.next({error: null, auth: null, action: 'logout'});
+    const authObservable = rx.Observable.combineLatest(authActions, sdk).switchMap(args => {
+        const action = args[0],
+            _sdkInstance = args[1];
+        return catchPromise(_sdkInstance[action.method](action.arguments).then((response) => {
+            if (action.method === 'authenticate') {
+                if (response.status === 200) {
+                    token.next(response.data.access_token);
+                }
             }
+            return {action, response};
+        }));
+    }).scan((acc, curr) => {
+        return Object.assign({}, acc, curr);
+    }, {}).publishReplay().refCount();
+
+    authObservable.authenticate = (username, password, otp) => {
+        authActions.next({
+            method: 'authenticate',
+            arguments: {username, password, otp}
         });
     };
-    return plugin;
+    return authObservable;
 }
 
 function wallets(conn) {
