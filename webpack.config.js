@@ -10,11 +10,11 @@ module.exports = {
     devtool: 'source-map',
     module: {
         loaders: [{
-            test: /\.js$/,
+            test: /\.(js|jsx)$/,
             exclude: /node_modules/,
             loader: 'babel-loader',
             query: {
-                presets: ['env']
+                presets: ['react', 'es2015']
             }
         }, {
             test: /\.css$/,

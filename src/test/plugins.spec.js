@@ -67,15 +67,18 @@ describe('sdk plugin', function() {
 });
 
 describe('authentication', function() {
-    let BitGo, connection, spy, subscriptions = [], auth = false;
+    let BitGo, connection, spy, authenticateSpy, auth, subscriptions = [];
     beforeEach(function() {
+        auth = false;
         spy = sinon.spy();
+        authenticateSpy = sinon.spy();
         BitGo = class {
             constructor(options) {
                 spy(options);
             }
             authenticate(obj, cb) {
                 auth = true;
+                authenticateSpy.apply(authenticateSpy, arguments);
                 cb(null, {status: 200, data: {access_token: '123123'}});
             }
             session(obj, cb) {
@@ -95,9 +98,20 @@ describe('authentication', function() {
         subscriptions.forEach(s => s.unsubscribe());
     });
 
+    it('should work without subscription on auth observable', () => {
+        connection.plugins.auth.authenticate({
+            user: 'user@email.com',
+            passwor: 'password',
+            otp: '123456'
+        });
+        assert.ok(authenticateSpy.callCount > 0);
+    });
+
     it('can handle session error', done => {
         subscriptions.push(
             connection.plugins.session.subscribe(response => {
+                assert(response);
+                assert(response.error);
                 assert.equal(response.error.status, 401);
                 done();
             })

@@ -1,11 +1,12 @@
 'use strict';
-const React = require('react');
-const ReactDOM = require('react-dom');
-const plugins = require('./plugins');
-const Connection = require('./connection');
-const BitGo = require('../vendor/BitGoJS');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {Route, Router, hashHistory} from 'react-router';
+import plugins from './plugins';
+import Connection from './connection';
+import BitGo from '../vendor/BitGoJS';
 
-const connection = new Connection({plugins, BitGo});
+const connection = new Connection({plugins: plugins, BitGo: BitGo.BitGo});
 
 class BaseComponent extends React.Component {
     constructor(props) {
@@ -29,6 +30,9 @@ class WalletList extends BaseComponent {
             this.setState({wallets});
         }));
         this._subscriptions.push(connection.plugins.session.subscribe(session => {
+            if (session.error && session.error.status === 401) {
+                hashHistory.push('/login');
+            }
             this.setState({session});
         }));
     }
@@ -44,8 +48,53 @@ class WalletList extends BaseComponent {
     }
 }
 
+class LoginForm extends BaseComponent {
+    constructor() {
+        super();
+        this.handleSubmit = this.handleSubmit.bind(this);
+        this.handleInputChange = this.handleInputChange.bind(this);
+    }
+    handleSubmit(e) {
+        e.preventDefault();
+        connection.plugins.auth.authenticate({username: this.state.username, password: this.state.password, otp: this.state.otp});
+        
+    }
+    componentDidMount() {
+        this._subscriptions.push(connection.plugins.auth.subscribe(auth => {
+            this.setState({auth});
+            if (auth) {
+                hashHistory.push('/');
+            }
+        }));
+    }
+    handleInputChange(event) {
+        const target = event.target;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+        this.setState({[name]: value});
+    }
+    render() {
+        return (
+            <div>
+                <form onSubmit={this.handleSubmit}>
+                    <label>Username
+                        <input type="text" name="username" onChange={this.handleInputChange}/>
+                    </label>
+                    <label>Password
+                        <input type="password" name="password"  onChange={this.handleInputChange}/>
+                    </label>
+                    <label>OTP
+                        <input type="text" name="otp"  onChange={this.handleInputChange}/>
+                    </label>
+                    <input type="submit" value="Submit"/>
+                </form>
+            </div>
+        );
+    }
+}
+
 ReactDOM.render(
-    <div>
-    <h1>App!</h1>
-    <WalletList></WalletList>
-</div>, document.getElementById('app'));
+    <Router history={hashHistory}>
+        <Route path="/" component={WalletList}/>
+        <Route path="/login" component={LoginForm}/>
+    </Router>, document.getElementById('app'));

@@ -51,7 +51,7 @@ function auth(conn) {
     const authObservable = rx.Observable.combineLatest(authActions, sdk).switchMap(args => {
         const action = args[0],
             _sdkInstance = args[1];
-        return catchPromise(_sdkInstance[action.method](action.arguments).then((response) => {
+        return catchPromise(_sdkInstance[action.method](action.args).then((response) => {
             if (action.method === 'authenticate') {
                 if (response.status === 200) {
                     token.next(response.data.access_token);
@@ -63,12 +63,13 @@ function auth(conn) {
         return Object.assign({}, acc, curr);
     }, {}).publishReplay().refCount();
 
-    authObservable.authenticate = (username, password, otp) => {
+    authObservable.authenticate = options => {
         authActions.next({
             method: 'authenticate',
-            arguments: {username, password, otp}
+            args: options
         });
     };
+    authObservable.subscribe(() => {}); // TODO: get rid of dummy subscription
     return authObservable;
 }
 
