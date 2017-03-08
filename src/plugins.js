@@ -1,5 +1,4 @@
 'use strict';
-const Promise = require('bluebird');
 const rx = require('rxjs');
 
 function catchPromise (promise) {
@@ -8,8 +7,8 @@ function catchPromise (promise) {
         promise.then(value => {
             subject.next(value);
             subject.complete();
-        }, value => {
-            subject.next(value);
+        }).catch(error => {
+            subject.next(error);
         });
         return subject;
     });
@@ -30,11 +29,7 @@ function token(conn) {
 function sdk(conn) {
     const token = conn.inject('token');
     return token.distinct().map(t => {
-        const sdk = new conn.options.BitGo({accessToken: t});
-        ['session', 'authenticate', 'wallets'].forEach(method => {
-            sdk[method] = Promise.promisify(sdk[method]);
-        });
-        return sdk;
+        return new conn.options.BitGo({accessToken: t});
     }).publishReplay().refCount();
 }
 
@@ -43,7 +38,7 @@ function session(conn) {
     return sdk.switchMap(sdk => {
         return catchPromise(sdk.session({}).then(response => {
             return {session: response, error: null};
-        }, error => {
+        }).catch(error => {
             return {error};
         }));
     }).scan((acc, curr) => {
@@ -66,7 +61,7 @@ function auth(conn) {
                 }
             }
             return {action: action, auth: response, error: null};
-        }, error => {
+        }).catch(error => {
             return {action, error};
         }));
     }).scan((acc, curr) => {

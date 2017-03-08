@@ -1,4 +1,5 @@
 'use strict';
+const Promise = require('bluebird');
 const plugins = require('../plugins');
 const Connection = require('../connection');
 const assert = require('assert');
@@ -18,14 +19,14 @@ describe('sdk plugin', function() {
             constructor(options) {
                 spy(options);
             }
-            authenticate(obj, cb) {
-                cb(null, {authenticate: true, success: true});
+            authenticate() {
+                return Promise.resolve({authenticate: true, success: true});
             }
-            session(obj, cb) {
-                cb(null, {session: true, success: true});
+            session() {
+                return Promise.resolve({session: true, success: true});
             }
-            wallets(obj, cb) {
-                cb(null, {wallets: true, success: true});
+            wallets() {
+                return Promise.resolve({wallets: true, success: true});
             }
         };
         connection = new Connection({plugins, BitGo});
@@ -37,15 +38,6 @@ describe('sdk plugin', function() {
     it('instantiates sdk', () => {
         subscriptions.push(connection.plugins.sdk.subscribe(sdk => sdk));
         assert.equal(spy.callCount, 1);
-    });
-
-    it('promisifies API', done => {
-        subscriptions.push(connection.plugins.sdk.subscribe(sdk => {
-            sdk.session({}).then(data => {
-                assert.ok(data.session);
-                done();
-            });
-        }));
     });
 
     it('re-instantiate on token change', () => {
@@ -76,25 +68,25 @@ describe('authentication', function() {
             constructor(options) {
                 spy(options);
             }
-            authenticate(obj, cb) {
+            authenticate(obj) {
                 authenticateSpy.apply(authenticateSpy, arguments);
                 if (obj.username && obj.password) {
                     auth = true;
-                    cb(null, {access_token: '123123'});
+                    return Promise.resolve({access_token: '123123'});
                 } else {
-                    auth = true;
-                    cb({status: 401, data: {error: 'unauthorized'}}, null);
+                    auth = false;
+                    return Promise.reject({status: 401, error: 'unauthorized'});
                 }
             }
-            session(obj, cb) {
+            session() {
                 if (auth) {
-                    cb(null, {session: true});
+                    return Promise.resolve({session: true});
                 } else {
-                    cb({status: 401}, null);
+                    return Promise.reject({status: 401});
                 }
             }
-            wallets(obj, cb) {
-                cb(null, {wallets: true, success: true});
+            wallets() {
+                return Promise.resolve({wallets: true, success: true});
             }
         };
         connection = new Connection({plugins, BitGo});
@@ -146,7 +138,7 @@ describe('authentication', function() {
     it('show authentication error', done => {
         subscriptions.push(connection.plugins.auth.subscribe(auth => {
             assert.ok(auth.error);
-            assert.ok(auth.error.data.error);
+            assert.ok(auth.error.error);
             done();
         }));
         connection.plugins.auth.authenticate({username: 'user'});
@@ -166,14 +158,14 @@ describe('token and storage', function() {
             }
         };
         class BitGo {
-            authenticate(obj, cb) {
-                cb(null, null);
+            authenticate() {
+                return new Promise();
             }
-            session(obj, cb) {
-                cb(null, null);
+            session() {
+                return new Promise();
             }
-            wallets(obj, cb) {
-                cb(null, null);
+            wallets() {
+                return new Promise();
             }
         }
         storage = new Storage();
