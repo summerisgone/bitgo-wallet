@@ -18,18 +18,21 @@ function catchPromise (promise) {
 function token(conn) {
     const TOKEN_KEY = 'token' ;
     const initialValue = conn.options.storage ? conn.options.storage.getItem(TOKEN_KEY) : '';
-    const subj = new rx.BehaviorSubject(initialValue);
-    subj.old_next = subj.next;
-    subj.next = value => {
+    const source = new rx.BehaviorSubject(initialValue);
+    const subject = source.distinct();
+    subject.next = value => {
         conn.options.storage && conn.options.storage.setItem(TOKEN_KEY, value);
-        subj.old_next(value);
+        source.next(value);
     };
-    return subj;
+    return subject;
 }
 
 function sdk(conn) {
     const token = conn.inject('token');
-    return token.distinct().map(t => {
+    return token
+    // need to debounce since token might be set in few places
+    // .debounceTime(10) ??
+    .map(t => {
         const sdk =  new conn.options.BitGo({accessToken: t});
         // Good idea to have Promise anyway when SDK throw error or returns cached value rather than promise
         ['wallets', 'authenticate', 'logout', 'me', 'session'].forEach(method => {
@@ -60,20 +63,23 @@ function session(conn) {
 
 function me(conn) {
     const sdk = conn.inject('sdk');
-    const token = conn.inject('token');
+    // run only when SDK initialized with token
+    const tokenFiltered = conn.inject('token').filter(t => t.length);
     return rx.Observable
-    .combineLatest(sdk, token.distinct().filter(t => t.length))
+    .combineLatest(sdk, tokenFiltered)
     .switchMap(args => {
         const sdk = args[0];
         return catchPromise(sdk.me().then(response => {
             return {data: response, error: false};
         }).catch(error => {
-            _resetTokenOnUnauthrizedResponse(error, token);
+            _resetTokenOnUnauthrizedResponse(error, tokenFiltered);
             return {error: error, data: {}};
         }));
-    }).scan((acc, curr) => {
+    })
+    .scan((acc, curr) => {
         return Object.assign({}, acc, curr);
-    }, {}).publishReplay().refCount();
+    }, {})
+    .publishReplay().refCount();
 }
 
 function auth(conn) {
@@ -86,7 +92,6 @@ function auth(conn) {
             _sdkInstance = args[1];
         return catchPromise(_sdkInstance[action.method](action.args).then((response) => {
             if (action.method === 'authenticate') {
-                action.args.password = null; // hide password from variables
                 if (response.access_token) {
                     token.next(response.access_token);
                 }
@@ -94,14 +99,14 @@ function auth(conn) {
             if (action.method === 'logout') {
                 token.next('');
             }
-            return {action: action, data: response, error: false};
+            return {action: {name: action.name}, data: response, error: false};
         }).catch(error => {
             _resetTokenOnUnauthrizedResponse(error, token);
             return {action, error, data: {}};
         }));
     }).scan((acc, curr) => {
         return Object.assign({}, acc, curr);
-    }, {}).publishReplay().refCount();
+    }, {}).publishReplay();
 
     authObservable.authenticate = options => {
         authActions.next({
@@ -114,7 +119,7 @@ function auth(conn) {
             method: 'logout'
         });
     };
-    authObservable.subscribe(() => {}); // TODO: get rid of dummy subscription
+    authObservable.connect(); // TODO: get rid of dummy subscription
     return authObservable;
 }
 

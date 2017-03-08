@@ -1,10 +1,28 @@
 'use strict';
 const rx = require('rxjs');
-const Promise = require('bluebird');
 const plugins = require('../plugins');
 const Connection = require('../connection');
 const assert = require('assert');
 const sinon = require('sinon');
+
+class BitGoMock {
+    authenticate(options, cb) {cb({}, null);}
+    logout(cb) {cb({}, null);}
+    me(cb) {cb({}, null);}
+    session(cb) {cb({}, null);}
+    wallets(cb) {cb({}, null);}
+}
+
+const TOKEN_KEY = 'token' ; //same as in plugin
+class StorageMock {
+    setItem(key, value) {
+        this[key] = value;
+    }
+    getItem(key) {
+        return this[key];
+    }
+}
+
 
 describe('plugins', function() {
     it('exports list of plugins', () => {
@@ -16,18 +34,10 @@ describe('sdk plugin', function() {
     let BitGo, connection, spy, subscriptions = [];
     beforeEach(function() {
         spy = sinon.spy();
-        BitGo = class {
+        BitGo = class extends BitGoMock {
             constructor(options) {
+                super(options);
                 spy(options);
-            }
-            authenticate() {
-                return Promise.resolve({authenticate: true, success: true});
-            }
-            session() {
-                return Promise.resolve({session: true, success: true});
-            }
-            wallets() {
-                return Promise.resolve({wallets: true, success: true});
             }
         };
         connection = new Connection({plugins, BitGo});
@@ -60,54 +70,59 @@ describe('sdk plugin', function() {
 });
 
 describe('authentication', function() {
-    let BitGo, connection, spy, authenticateSpy, auth, subscriptions = [];
+    let BitGo, connection, spy, authenticateSpy, meSpy, auth, subscriptions = [];
     beforeEach(function() {
         auth = false;
         spy = sinon.spy();
         authenticateSpy = sinon.spy();
-        BitGo = class {
+        meSpy = sinon.spy();
+        BitGo = class extends BitGoMock {
             constructor(options) {
+                super(options);
                 spy(options);
             }
-            authenticate(obj) {
+            authenticate(obj, cb) {
                 authenticateSpy.apply(authenticateSpy, arguments);
                 if (obj.username && obj.password) {
                     auth = true;
-                    return Promise.resolve({access_token: '123123'});
+                    cb(null, {access_token: '123123'});
                 } else {
                     auth = false;
-                    return Promise.reject({status: 401, error: 'unauthorized'});
+                    cb({status: 401}, null);
                 }
             }
-            session() {
+            me(cb) {
+                meSpy();
                 if (auth) {
-                    return Promise.resolve({session: true});
+                    cb(null, {});
                 } else {
-                    return Promise.reject({status: 401});
+                    cb({status: 401}, null);
                 }
-            }
-            wallets() {
-                return Promise.resolve({wallets: true, success: true});
             }
         };
-        connection = new Connection({plugins, BitGo});
+        const storage = new StorageMock();
+        storage.setItem(TOKEN_KEY, 'foo');
+        connection = new Connection({plugins, BitGo, storage});
     });
     afterEach(function() {
         subscriptions.forEach(s => s.unsubscribe());
     });
 
-    it('should work without subscription on auth observable', () => {
+    it('should work without subscription on auth observable', done => {
         connection.plugins.auth.authenticate({
             user: 'user@email.com',
             password: 'password',
             otp: '123456'
         });
-        assert.ok(authenticateSpy.callCount > 0);
+        setTimeout(() => {
+            assert.ok(authenticateSpy.callCount > 0);
+            done();
+        }, 300);
     });
 
-    it('can handle session error', done => {
+    it('can handle curerntUser error', done => {
         subscriptions.push(
-            connection.plugins.session.subscribe(response => {
+            connection.plugins.me.subscribe(response => {
                 assert(response);
                 assert(response.error);
                 assert.equal(response.error.status, 401);
@@ -116,18 +131,15 @@ describe('authentication', function() {
         );
     });
 
-    it('can re-authorize session', (done) => {
-        const spy = sinon.spy();
-        const unauthorized = connection.plugins.session.filter(s => s.error && s.error.status === 401);
+    it('can re-authorize currentUser if token expired', done => {
+        const unauthorized = connection.plugins.me.filter(r => r.error && r.error.status === 401);
         subscriptions.push(
-            connection.plugins.session.subscribe(response => {
-                spy(response);
-                if (spy.callCount === 2) {
-                    done();
-                }
+            connection.plugins.me
+            .filter(v => v.error === false)
+            .subscribe(() => {
+                done();
             })
         );
-        subscriptions.push(connection.plugins.auth.subscribe(() => {}));
         subscriptions.push(
             unauthorized.subscribe(()=> connection.plugins.auth.authenticate({
                 username: 'admin@example.com',
@@ -139,19 +151,12 @@ describe('authentication', function() {
     it('show authentication error', done => {
         subscriptions.push(connection.plugins.auth.subscribe(auth => {
             assert.ok(auth.error);
-            assert.ok(auth.error.error);
+            assert.equal(auth.error.status, 401);
             done();
         }));
         connection.plugins.auth.authenticate({username: 'user'});
     });
 
-    it('deletes password from authenticate action', done => {
-        subscriptions.push(connection.plugins.auth.subscribe(auth => {
-            assert.equal(auth.action.args.password, null);
-            done();
-        }));
-        connection.plugins.auth.authenticate({username: 'user', password: 'secret'});
-    });
 });
 
 describe('token and storage', function() {
@@ -159,30 +164,18 @@ describe('token and storage', function() {
     const TOKEN_KEY = 'token' ; //same as in plugin
     beforeEach(function() {
         setTokenSpy = sinon.spy();
-        const Storage = class {
+        class Storage extends StorageMock {
             setItem(key, value) {
+                super.setItem(key, value);
                 setTokenSpy(value);
-                this[key] = value;
-            }
-            getItem(key) {
-                return this[key];
-            }
-        };
-        class BitGo {
-            authenticate() {
-                return new Promise();
-            }
-            logout() {
-                return Promise.resolve();
-            }
-            session() {
-                return new Promise();
-            }
-            wallets() {
-                return new Promise();
             }
         }
         storage = new Storage();
+        class BitGo extends BitGoMock {
+            logout(obj, cb) {
+                cb(null, {});
+            }
+        }
         storage.setItem(TOKEN_KEY, 'foo');
         connection = new Connection({plugins, BitGo, storage});
     });
@@ -216,26 +209,11 @@ describe('token and storage', function() {
 
 describe('do not request me without token', function() {
     let connection, storage, meSpy, subscriptions = [];
-    const TOKEN_KEY = 'token' ; //same as in plugin
     beforeEach(function() {
         meSpy = sinon.spy();
-        const Storage = class {
-            setItem(key, value) {
-                this[key] = value;
-            }
-            getItem(key) {
-                return this[key];
-            }
-        };
-        class BitGo {
-            me() {
-                meSpy();
-                return new Promise();
-            }
-        }
-        storage = new Storage();
+        storage = new StorageMock();
         storage.setItem(TOKEN_KEY, '');
-        connection = new Connection({plugins, BitGo, storage});
+        connection = new Connection({plugins, BitGo: BitGoMock, storage});
     });
     afterEach(function() {
         subscriptions.forEach(s => s.unsubscribe());
