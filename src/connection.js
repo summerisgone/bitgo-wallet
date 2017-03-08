@@ -25,10 +25,18 @@ class Connection {
     inject (pluginName) {
         const pluginFn = this._pluginFns[pluginName];
         assert(pluginFn, `Can't instantiate plugin ${pluginName}: it is ${this._pluginFns[pluginName]}`);
-        const instance = this.plugins[pluginName] || pluginFn(this);
+        const instance = this.plugins[pluginName] || this.create(pluginFn);
         this.plugins[pluginName] = instance;
         assert(instance instanceof rx.Observable, `Plugin ${pluginName} doesn't return rx.Observable instance`);
         return instance;
+    }
+    create (pluginFn) {
+        try {
+            return pluginFn(this);
+        } catch (err) {
+            assert(false, `Can't create plugin instance for ${pluginFn.name}, ${err.message}`);
+            throw err;
+        }
     }
 }
 module.exports = Connection;

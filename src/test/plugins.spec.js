@@ -77,9 +77,14 @@ describe('authentication', function() {
                 spy(options);
             }
             authenticate(obj, cb) {
-                auth = true;
                 authenticateSpy.apply(authenticateSpy, arguments);
-                cb(null, {status: 200, data: {access_token: '123123'}});
+                if (obj.username && obj.password) {
+                    auth = true;
+                    cb(null, {access_token: '123123'});
+                } else {
+                    auth = true;
+                    cb({status: 401, data: {error: 'unauthorized'}}, null);
+                }
             }
             session(obj, cb) {
                 if (auth) {
@@ -101,7 +106,7 @@ describe('authentication', function() {
     it('should work without subscription on auth observable', () => {
         connection.plugins.auth.authenticate({
             user: 'user@email.com',
-            passwor: 'password',
+            password: 'password',
             otp: '123456'
         });
         assert.ok(authenticateSpy.callCount > 0);
@@ -131,7 +136,66 @@ describe('authentication', function() {
         );
         subscriptions.push(connection.plugins.auth.subscribe(() => {}));
         subscriptions.push(
-            unauthorized.subscribe(()=> connection.plugins.auth.authenticate({username: 'admin@example.com'}))
+            unauthorized.subscribe(()=> connection.plugins.auth.authenticate({
+                username: 'admin@example.com',
+                password: 'password'
+            }))
         );
+    });
+
+    it('show authentication error', done => {
+        subscriptions.push(connection.plugins.auth.subscribe(auth => {
+            assert.ok(auth.error);
+            assert.ok(auth.error.data.error);
+            done();
+        }));
+        connection.plugins.auth.authenticate({username: 'user'});
+    });
+});
+
+describe('token and storage', function() {
+    let connection, storage, subscriptions = [];
+    const TOKEN_KEY = 'token' ; //same as in plugin
+    beforeEach(function() {
+        const Storage = class {
+            setItem(key, value) {
+                this[key] = value;
+            }
+            getItem(key) {
+                return this[key];
+            }
+        };
+        class BitGo {
+            authenticate(obj, cb) {
+                cb(null, null);
+            }
+            session(obj, cb) {
+                cb(null, null);
+            }
+            wallets(obj, cb) {
+                cb(null, null);
+            }
+        }
+        storage = new Storage();
+        storage.setItem(TOKEN_KEY, 'foo');
+        connection = new Connection({plugins, BitGo, storage});
+    });
+    afterEach(function() {
+        subscriptions.forEach(s => s.unsubscribe());
+    });
+
+    it('saves token on changes', done => {
+        connection.plugins.token.next('123');
+        setTimeout(function() {
+            assert.equal(storage.getItem(TOKEN_KEY), '123');
+            done();
+        });
+    });
+
+    it('restores token on start', done => {
+        connection.plugins.token.subscribe(t => {
+            assert.equal(t, 'foo');
+            done();
+        });
     });
 });

@@ -1,12 +1,14 @@
 'use strict';
-import React from 'react';
-import ReactDOM from 'react-dom';
-import {Route, Router, hashHistory} from 'react-router';
-import plugins from './plugins';
-import Connection from './connection';
-import BitGo from '../vendor/BitGoJS';
+const React = require('react');
+const ReactDOM = require('react-dom');
+const reactROuter = require('react-router');
+const {Route, Router, hashHistory} = reactROuter;
+const plugins = require('./plugins');
+const Connection = require('./connection');
+const BitGo = require('../vendor/BitGoJS');
+const storage = require('./storage');
 
-const connection = new Connection({plugins: plugins, BitGo: BitGo.BitGo});
+const connection = new Connection({plugins: plugins, BitGo: BitGo.BitGo, storage: storage});
 
 class BaseComponent extends React.Component {
     constructor(props) {
@@ -51,20 +53,20 @@ class WalletList extends BaseComponent {
 class LoginForm extends BaseComponent {
     constructor() {
         super();
+        this.state = {auth: {}};
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleInputChange = this.handleInputChange.bind(this);
     }
     handleSubmit(e) {
         e.preventDefault();
         connection.plugins.auth.authenticate({username: this.state.username, password: this.state.password, otp: this.state.otp});
-        
     }
     componentDidMount() {
         this._subscriptions.push(connection.plugins.auth.subscribe(auth => {
             this.setState({auth});
-            if (auth) {
-                hashHistory.push('/');
-            }
+            // if (auth) {
+            //     hashHistory.push('/');
+            // }
         }));
     }
     handleInputChange(event) {
@@ -77,6 +79,7 @@ class LoginForm extends BaseComponent {
         return (
             <div>
                 <form onSubmit={this.handleSubmit}>
+                    <code>{JSON.stringify(this.state.auth)}</code>
                     <label>Username
                         <input type="text" name="username" onChange={this.handleInputChange}/>
                     </label>

@@ -15,8 +15,16 @@ function catchPromise (promise) {
     });
 }
 
-function token() {
-    return new rx.BehaviorSubject('');
+function token(conn) {
+    const TOKEN_KEY = 'token' ;
+    const initialValue = conn.options.storage ? conn.options.storage.getItem(TOKEN_KEY) : '';
+    const subj = new rx.BehaviorSubject(initialValue);
+    subj.old_next = subj.next;
+    subj.next = value => {
+        conn.options.storage && conn.options.storage.setItem(TOKEN_KEY, value);
+        subj.old_next(value);
+    };
+    return subj;
 }
 
 function sdk(conn) {
@@ -53,11 +61,13 @@ function auth(conn) {
             _sdkInstance = args[1];
         return catchPromise(_sdkInstance[action.method](action.args).then((response) => {
             if (action.method === 'authenticate') {
-                if (response.status === 200) {
-                    token.next(response.data.access_token);
+                if (response.access_token) {
+                    token.next(response.access_token);
                 }
             }
-            return {action, response};
+            return {action: action, auth: response, error: null};
+        }, error => {
+            return {action, error};
         }));
     }).scan((acc, curr) => {
         return Object.assign({}, acc, curr);
