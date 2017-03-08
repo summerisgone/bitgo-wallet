@@ -1,4 +1,5 @@
 'use strict';
+const rx = require('rxjs');
 const Promise = require('bluebird');
 const plugins = require('../plugins');
 const Connection = require('../connection');
@@ -143,14 +144,24 @@ describe('authentication', function() {
         }));
         connection.plugins.auth.authenticate({username: 'user'});
     });
+
+    it('deletes password from authenticate action', done => {
+        subscriptions.push(connection.plugins.auth.subscribe(auth => {
+            assert.equal(auth.action.args.password, null);
+            done();
+        }));
+        connection.plugins.auth.authenticate({username: 'user', password: 'secret'});
+    });
 });
 
 describe('token and storage', function() {
-    let connection, storage, subscriptions = [];
+    let connection, storage, setTokenSpy, subscriptions = [];
     const TOKEN_KEY = 'token' ; //same as in plugin
     beforeEach(function() {
+        setTokenSpy = sinon.spy();
         const Storage = class {
             setItem(key, value) {
+                setTokenSpy(value);
                 this[key] = value;
             }
             getItem(key) {
@@ -160,6 +171,9 @@ describe('token and storage', function() {
         class BitGo {
             authenticate() {
                 return new Promise();
+            }
+            logout() {
+                return Promise.resolve();
             }
             session() {
                 return new Promise();
@@ -187,6 +201,86 @@ describe('token and storage', function() {
     it('restores token on start', done => {
         connection.plugins.token.subscribe(t => {
             assert.equal(t, 'foo');
+            done();
+        });
+    });
+
+    it('reset token on logout', done => {
+        connection.plugins.auth.logout();
+        setTimeout(() => {
+            assert.ok(setTokenSpy.calledWith(''));
+            done();
+        });
+    });
+});
+
+describe('do not request me without token', function() {
+    let connection, storage, meSpy, subscriptions = [];
+    const TOKEN_KEY = 'token' ; //same as in plugin
+    beforeEach(function() {
+        meSpy = sinon.spy();
+        const Storage = class {
+            setItem(key, value) {
+                this[key] = value;
+            }
+            getItem(key) {
+                return this[key];
+            }
+        };
+        class BitGo {
+            me() {
+                meSpy();
+                return new Promise();
+            }
+        }
+        storage = new Storage();
+        storage.setItem(TOKEN_KEY, '');
+        connection = new Connection({plugins, BitGo, storage});
+    });
+    afterEach(function() {
+        subscriptions.forEach(s => s.unsubscribe());
+    });
+
+    it('do not request me without token', done => {
+        subscriptions.push(connection.plugins.me.subscribe(() => {}));
+        setTimeout(function() {
+            assert.ok(meSpy.callCount == 0);
+            done();
+        });
+    });
+});
+
+describe('rx publishReplay + refcount', function() {
+    it('works', () => {
+        const subj = new rx.Subject();
+        assert.ok(subj.publishReplay);
+        assert.ok(subj.publishReplay().refCount);
+    });
+
+    it('provides last value', done => {
+        const source = new rx.Subject();
+        const newSubj = source.publishReplay().refCount();
+        newSubj.subscribe(() => {}); // connect to observable
+        source.next(0);
+        newSubj.subscribe(v => {
+            assert(v === 0);
+            done();
+        });
+    });
+
+    it('works as multicast', done => {
+        const source = new rx.Subject();
+        const spy = sinon.spy();
+        const replaySubj = source.map(v => {
+            spy();
+            return v;
+        }).publishBehavior().refCount();
+        replaySubj.subscribe(() => {});
+        replaySubj.subscribe(() => {});
+        replaySubj.subscribe(() => {});
+        source.next('foo');
+        setTimeout(() => {
+            assert.equal(spy.callCount, 1);
             done();
         });
     });

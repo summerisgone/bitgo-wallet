@@ -1,8 +1,7 @@
 'use strict';
 const React = require('react');
 const ReactDOM = require('react-dom');
-const reactROuter = require('react-router');
-const {Route, Router, hashHistory} = reactROuter;
+const bindAll = require('lodash.bindall');
 const plugins = require('./plugins');
 const Connection = require('./connection');
 const BitGo = require('../vendor/BitGoJS');
@@ -18,34 +17,63 @@ class BaseComponent extends React.Component {
     componentWillUnmount() {
         this._subscriptions.forEach(s => s.unsubscribe());
     }
+    subscribeState(observable, key) {
+        this._subscriptions.push(observable.subscribe(data => {
+            this.setState({[key]: data});
+        }));
+    }
 }
 
 class WalletList extends BaseComponent {
     constructor(props) {
         super(props);
         this.state = {
-            wallets: []
+            wallets: {},
+            me: {}
         };
+        bindAll(this, ['isAuthenticated']);
     }
     componentDidMount() {
-        this._subscriptions.push(connection.plugins.wallets.subscribe(wallets => {
-            this.setState({wallets});
-        }));
-        this._subscriptions.push(connection.plugins.session.subscribe(session => {
-            if (session.error && session.error.status === 401) {
-                hashHistory.push('/login');
-            }
-            this.setState({session});
-        }));
+        this.subscribeState(connection.plugins.wallets, 'wallets');
+        this.subscribeState(connection.plugins.me, 'me');
+    }
+    isAuthenticated() {
+        return this.state.me.data && this.state.me.data.id;
     }
     render() {
         return (
             <div>
-                <h2>Session</h2>
-                <code>{JSON.stringify(this.state.session)}</code>
-                <h2>Wallets</h2>
-                <code>{JSON.stringify(this.state.wallets)}</code>
+                {this.isAuthenticated() ? (
+                    <div>
+                        <h2>Current User!</h2>
+                        <Logout />
+                        <code>me: {JSON.stringify(this.state.me)}</code>
+                        <h2>Wallets</h2>
+                        <code>wallets: {JSON.stringify(this.state.wallets)}</code>
+                    </div>
+                ) : <div>
+                    <h2>Please login</h2>
+                    <code>me: {JSON.stringify(this.state.me)}</code>
+                    <LoginForm />
+
+                </div>}
             </div>
+        );
+    }
+}
+
+class Logout extends BaseComponent {
+    constructor() {
+        super();
+        bindAll(this, ['handleClick']);
+    }
+    handleClick(e) {
+        e.preventDefault();
+        connection.plugins.auth.logout();
+    }
+    render() {
+        return (
+            <button onClick={this.handleClick}>Log out</button>
         );
     }
 }
@@ -54,20 +82,14 @@ class LoginForm extends BaseComponent {
     constructor() {
         super();
         this.state = {auth: {}};
-        this.handleSubmit = this.handleSubmit.bind(this);
-        this.handleInputChange = this.handleInputChange.bind(this);
+        bindAll(this, ['handleSubmit', 'handleInputChange']);
+    }
+    componentDidMount() {
+        this.subscribeState(connection.plugins.auth, 'auth');
     }
     handleSubmit(e) {
         e.preventDefault();
         connection.plugins.auth.authenticate({username: this.state.username, password: this.state.password, otp: this.state.otp});
-    }
-    componentDidMount() {
-        this._subscriptions.push(connection.plugins.auth.subscribe(auth => {
-            this.setState({auth});
-            // if (auth) {
-            //     hashHistory.push('/');
-            // }
-        }));
     }
     handleInputChange(event) {
         const target = event.target;
@@ -78,8 +100,9 @@ class LoginForm extends BaseComponent {
     render() {
         return (
             <div>
+                <code>auth: {JSON.stringify(this.state.auth)}</code>
+                <br/>
                 <form onSubmit={this.handleSubmit}>
-                    <code>{JSON.stringify(this.state.auth)}</code>
                     <label>Username
                         <input type="text" name="username" onChange={this.handleInputChange}/>
                     </label>
@@ -96,8 +119,4 @@ class LoginForm extends BaseComponent {
     }
 }
 
-ReactDOM.render(
-    <Router history={hashHistory}>
-        <Route path="/" component={WalletList}/>
-        <Route path="/login" component={LoginForm}/>
-    </Router>, document.getElementById('app'));
+ReactDOM.render(<WalletList />, document.getElementById('app'));
