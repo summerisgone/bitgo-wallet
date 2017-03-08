@@ -33,7 +33,7 @@ function sdk(conn) {
     .map(t => {
         const sdk =  new conn.options.BitGo({accessToken: t});
         // Good idea to have Promise anyway when SDK throw error or returns cached value rather than promise
-        ['wallets', 'authenticate', 'logout', 'me', 'session'].forEach(method => {
+        ['authenticate', 'logout', 'me', 'session'].forEach(method => {
             sdk[method] = Promise.promisify(sdk[method]);
         });
         return sdk;
@@ -46,7 +46,7 @@ function _resetTokenOnUnauthrizedResponse(response, token) {
     }
 }
 
-function APIWrapperHelper(conn, method) {
+function APIWrapperHelper(conn, getPromise) {
     const sdk = conn.inject('sdk');
     const tokenFiltered = conn.inject('token').filter(t => t.length);
     const loadingSubject = new rx.BehaviorSubject(false);
@@ -55,7 +55,7 @@ function APIWrapperHelper(conn, method) {
     .do(() => {loadingSubject.next(true);})
     .switchMap(args => {
         const sdk = args[0];
-        return catchPromise(sdk[method]({}).then(response => {
+        return catchPromise(getPromise(sdk).then(response => {
             return {data: response, error: false};
         }).catch(error => {
             _resetTokenOnUnauthrizedResponse(error, tokenFiltered);
@@ -72,15 +72,18 @@ function APIWrapperHelper(conn, method) {
 }
 
 function session(connection) {
-    return APIWrapperHelper(connection, 'session');
+    return APIWrapperHelper(connection, sdk => sdk.session({}));
 }
 
 function me(connection) {
-    return APIWrapperHelper(connection, 'me');
+    return APIWrapperHelper(connection, sdk => sdk.me({}));
 }
 
 function wallets(connection) {
-    return APIWrapperHelper(connection, 'wallets');
+    return APIWrapperHelper(connection, sdk => {
+        const wallets = sdk.wallets();
+        return wallets.list({getbalances: true});
+    });
 }
 
 function auth(conn) {
