@@ -7,10 +7,10 @@ const sinon = require('sinon');
 
 class BitGoMock {
     authenticate(options, cb) {cb({}, null);}
-    logout(cb) {cb({}, null);}
-    me(cb) {cb({}, null);}
-    session(cb) {cb({}, null);}
-    wallets(cb) {cb({}, null);}
+    logout(obj, cb) {cb({}, null);}
+    me(obj, cb) {cb({}, null);}
+    session(obj, cb) {cb({}, null);}
+    wallets(obj, cb) {cb({}, null);}
 }
 
 const TOKEN_KEY = 'token' ; //same as in plugin
@@ -91,7 +91,7 @@ describe('authentication', function() {
                     cb({status: 401}, null);
                 }
             }
-            me(cb) {
+            me(obj, cb) {
                 meSpy();
                 if (auth) {
                     cb(null, {});
@@ -213,7 +213,13 @@ describe('do not request me without token', function() {
         meSpy = sinon.spy();
         storage = new StorageMock();
         storage.setItem(TOKEN_KEY, '');
-        connection = new Connection({plugins, BitGo: BitGoMock, storage});
+        class BitGo extends BitGoMock {
+            me(obj, cb) {
+                meSpy();
+                cb(null, {});
+            }
+        }
+        connection = new Connection({plugins, BitGo, storage});
     });
     afterEach(function() {
         subscriptions.forEach(s => s.unsubscribe());

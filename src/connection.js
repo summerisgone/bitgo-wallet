@@ -14,6 +14,7 @@ class Connection {
         this._pluginFns = {};
         plugins.forEach(plugin => {
             assert(plugin.name, `Plugin name should be defined for ${plugin}`);
+            assert(!this._pluginFns[plugin.name], `Plugin ${plugin.name} already registered`);
             this._pluginFns[plugin.name] = plugin;
         });
         // instantiate

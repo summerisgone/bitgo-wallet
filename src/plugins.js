@@ -30,8 +30,6 @@ function token(conn) {
 function sdk(conn) {
     const token = conn.inject('token');
     return token
-    // need to debounce since token might be set in few places
-    // .debounceTime(10) ??
     .map(t => {
         const sdk =  new conn.options.BitGo({accessToken: t});
         // Good idea to have Promise anyway when SDK throw error or returns cached value rather than promise
@@ -48,38 +46,41 @@ function _resetTokenOnUnauthrizedResponse(response, token) {
     }
 }
 
-function session(conn) {
+function APIWrapperHelper(conn, method) {
     const sdk = conn.inject('sdk');
-    return sdk.switchMap(sdk => {
-        return catchPromise(sdk.session({}).then(response => {
-            return {data: response, error: false};
-        }).catch(error => {
-            return {error: error, data: {}};
-        }));
-    }).scan((acc, curr) => {
-        return Object.assign({}, acc, curr);
-    }, {}).publishReplay().refCount();
-}
-
-function me(conn) {
-    const sdk = conn.inject('sdk');
-    // run only when SDK initialized with token
     const tokenFiltered = conn.inject('token').filter(t => t.length);
+    // const loadingSubject = new rx.BehaviorSubject(false);
     return rx.Observable
     .combineLatest(sdk, tokenFiltered)
+    // .do(() => {loadingSubject.next(true);})
     .switchMap(args => {
         const sdk = args[0];
-        return catchPromise(sdk.me().then(response => {
+        return catchPromise(sdk[method]({}).then(response => {
             return {data: response, error: false};
         }).catch(error => {
             _resetTokenOnUnauthrizedResponse(error, tokenFiltered);
             return {error: error, data: {}};
         }));
     })
+    // .do(() => {loadingSubject.next(false);})
     .scan((acc, curr) => {
         return Object.assign({}, acc, curr);
     }, {})
     .publishReplay().refCount();
+    // result.loading = loadingSubject;
+    // return result;
+}
+
+function session(connection) {
+    return APIWrapperHelper(connection, 'session');
+}
+
+function me(connection) {
+    return APIWrapperHelper(connection, 'me');
+}
+
+function wallets(connection) {
+    return APIWrapperHelper(connection, 'wallets');
 }
 
 function auth(conn) {
@@ -102,7 +103,7 @@ function auth(conn) {
             return {action: {name: action.name}, data: response, error: false};
         }).catch(error => {
             _resetTokenOnUnauthrizedResponse(error, token);
-            return {action, error, data: {}};
+            return {action: {name: action.name}, error, data: {}};
         }));
     }).scan((acc, curr) => {
         return Object.assign({}, acc, curr);
@@ -123,21 +124,4 @@ function auth(conn) {
     return authObservable;
 }
 
-function wallets(conn) {
-    // const walletSubject = new rx.BehaviorSubject([]);
-    const loadingSubject = new rx.BehaviorSubject();
-    const sdk = conn.inject('sdk');
-    // const me = conn.inject('me');
-    // const walletSubject = rx.Observable.combineLatest(me, sdk).switchMap(args => {
-        // const sdk = args[1];
-    const walletSubject = sdk.map(sdk => {
-        loadingSubject.next(true);
-        return sdk.wallets({}).finally(() => {
-            loadingSubject.next(false);
-        });
-    }).publishReplay().refCount();
-    walletSubject.loading = loadingSubject;
-    return walletSubject;
-}
-
-module.exports = [token, sdk, auth, session, wallets, me];
+module.exports = [token, sdk, auth, session, me, wallets];
