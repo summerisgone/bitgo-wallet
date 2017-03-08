@@ -127,4 +127,8 @@ function auth(conn) {
     return authObservable;
 }
 
-module.exports = [token, sdk, auth, session, me, wallets];
+function time() {
+    return rx.Observable.interval(200).timestamp().map(ts => new Date(ts.timestamp));
+}
+
+module.exports = [token, sdk, auth, session, me, wallets, time];

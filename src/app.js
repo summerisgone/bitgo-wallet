@@ -24,6 +24,49 @@ class BaseComponent extends React.Component {
     }
 }
 
+class SendMoney extends BaseComponent {
+    constructor(props) {
+        super(props);
+        this.state = {
+            loading: false,
+            result: null,
+            error: null
+        };
+        bindAll(this, ['clickHandler']);
+    }
+    clickHandler(e) {
+        e.preventDefault();
+        this.setState({loading: true});
+        this.sdk.wallets().get({id: this.props.wallet.wallet.id})
+        .then(wallet => {
+            wallet.sendCoins({
+                address: '2NApDVj2N46fW6h1XF3J3xdtaJ5ooKEbwpj',
+                amount:  0.0001 * 1e8,
+                walletPassphrase: '*top secret*'
+            }).then(result => {
+                this.setState({result});
+            }).catch(error => {
+                this.setState({error});
+            }).finally(() => {
+                this.setState({loading: false});
+            });
+        });
+    }
+    componentDidMount() {
+        this._subscriptions.push(
+            connection.plugins.sdk.subscribe(sdk => this.sdk = sdk)
+        );
+    }
+    render() {
+        return (<div>
+            <code>loading: {this.state.loading}</code>
+            <code>result: {JSON.stringify(this.state.result)}</code>
+            <code>error: {JSON.stringify(this.state.error)}</code>
+            <button onClick={this.clickHandler}>Send!</button>
+        </div>);
+    }
+}
+
 class WalletList extends BaseComponent {
     constructor(props) {
         super(props);
@@ -38,11 +81,12 @@ class WalletList extends BaseComponent {
         this.subscribeState(connection.plugins.me, 'me');
     }
     isAuthenticated() {
-        return this.state.me.data && this.state.me.data.id;
+        return this.state.me.data && this.state.me.data.id.length > 0;
     }
     render() {
         return (
             <div>
+                <span>{this.isAuthenticated()}</span>
                 {this.isAuthenticated() ? (
                     <div>
                         <h2>Current User!</h2>
@@ -50,6 +94,13 @@ class WalletList extends BaseComponent {
                         <code>me: {JSON.stringify(this.state.me)}</code>
                         <h2>Wallets</h2>
                         <code>wallets: {JSON.stringify(this.state.wallets)}</code>
+                        <UnlockForm />
+                        {this.state.wallets ? this.state.wallets.data.wallets.map(Wallet => {
+                            return (<div key={Wallet.wallet.id}>
+                                <strong>{Wallet.wallet.label}</strong>
+                                <SendMoney wallet={Wallet} />
+                            </div>);
+                        }) : null}
                     </div>
                 ) : <div>
                     <h2>Please login</h2>
@@ -115,6 +166,62 @@ class LoginForm extends BaseComponent {
                     <input type="submit" value="Submit"/>
                 </form>
             </div>
+        );
+    }
+}
+
+
+class UnlockForm extends BaseComponent {
+    constructor() {
+        super();
+        this.state = {locked: true};
+        bindAll(this, ['handleSubmit', 'handleInputChange']);
+    }
+    componentDidMount() {
+        this._subscriptions.push(
+            connection.plugins.sdk.subscribe(sdk => this.sdk = sdk)
+        );
+        this._subscriptions.push(
+            connection.plugins.time.subscribe(now => {
+                const expires = this.state.expires;
+                this.setState({
+                    timeLeft: Math.floor((expires - now) / 1000)
+                });
+            })
+        );
+        this.subscribeState(connection.plugins.time, 'time');
+    }
+    handleSubmit(e) {
+        e.preventDefault();
+        const duration = 600;
+        this.sdk.unlock({otp: this.state.otp, duration})
+        .then(() => {
+            const expires = new Date();
+            expires.setSeconds(expires.getSeconds() + duration);
+            this.setState({locked: false, expires});
+            setTimeout(() => {
+                this.setState({locked: true});
+            });
+        })
+        .catch(error => {
+            this.setState({error, otp: ''});
+        });
+    }
+    handleInputChange(event) {
+        const target = event.target;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+        this.setState({[name]: value});
+    }
+    render() {
+        return (
+            <form onSubmit={this.handleSubmit}>
+                {this.state.timeLeft > 0 ? <div>{this.state.timeLeft}s</div> : <div>Locked!</div>}
+                <label>OTP
+                    <input type="text" name="otp" value={this.state.otp} onChange={this.handleInputChange}/>
+                </label>
+                <input type="submit" value="Unlock"/>
+            </form>
         );
     }
 }
