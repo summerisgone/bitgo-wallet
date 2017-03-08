@@ -49,10 +49,10 @@ function _resetTokenOnUnauthrizedResponse(response, token) {
 function APIWrapperHelper(conn, method) {
     const sdk = conn.inject('sdk');
     const tokenFiltered = conn.inject('token').filter(t => t.length);
-    // const loadingSubject = new rx.BehaviorSubject(false);
-    return rx.Observable
+    const loadingSubject = new rx.BehaviorSubject(false);
+    const result = rx.Observable
     .combineLatest(sdk, tokenFiltered)
-    // .do(() => {loadingSubject.next(true);})
+    .do(() => {loadingSubject.next(true);})
     .switchMap(args => {
         const sdk = args[0];
         return catchPromise(sdk[method]({}).then(response => {
@@ -62,13 +62,13 @@ function APIWrapperHelper(conn, method) {
             return {error: error, data: {}};
         }));
     })
-    // .do(() => {loadingSubject.next(false);})
+    .do(() => {loadingSubject.next(false);})
     .scan((acc, curr) => {
         return Object.assign({}, acc, curr);
     }, {})
     .publishReplay().refCount();
-    // result.loading = loadingSubject;
-    // return result;
+    result.loading = loadingSubject;
+    return result;
 }
 
 function session(connection) {
