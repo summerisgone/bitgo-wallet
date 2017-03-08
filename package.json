@@ -40,9 +40,17 @@
   "dependencies": {
     "babel-preset-react-hmre": "^1.1.1",
     "bluebird": "^3.5.0",
+    "chunk-manifest-webpack-plugin": "^1.0.0",
+    "extract-text-webpack-plugin": "^2.1.0",
     "fetch-jsonp": "^1.0.6",
+    "file-loader": "^0.10.1",
+    "html-webpack-plugin": "^2.28.0",
     "lodash.bindall": "^4.4.0",
     "react": "^15.4.2",
-    "react-dom": "^15.4.2"
+    "react-dom": "^15.4.2",
+    "react-notify-toast": "^0.1.5",
+    "semantic-ui-css": "^2.2.9",
+    "semantic-ui-react": "^0.67.0",
+    "url-loader": "^0.5.8"
   }
 }

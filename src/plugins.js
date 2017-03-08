@@ -17,7 +17,7 @@ function catchPromise (promise) {
 
 function token(conn) {
     const TOKEN_KEY = 'token' ;
-    const initialValue = conn.options.storage ? conn.options.storage.getItem(TOKEN_KEY) : '';
+    const initialValue = conn.options.storage ? conn.options.storage.getItem(TOKEN_KEY) || '' : '';
     const source = new rx.BehaviorSubject(initialValue);
     const subject = source.distinct();
     subject.next = value => {
@@ -88,10 +88,13 @@ function wallets(connection) {
 
 function auth(conn) {
     const authActions = new rx.ReplaySubject();
+    const loadingSubject = new rx.BehaviorSubject(false);
     const sdk = conn.inject('sdk');
     const token = conn.inject('token');
 
-    const authObservable = rx.Observable.combineLatest(authActions, sdk).switchMap(args => {
+    const authObservable = rx.Observable.combineLatest(authActions, sdk)
+    .do(() => {loadingSubject.next(true);})
+    .switchMap(args => {
         const action = args[0],
             _sdkInstance = args[1];
         return catchPromise(_sdkInstance[action.method](action.args).then((response) => {
@@ -108,9 +111,12 @@ function auth(conn) {
             _resetTokenOnUnauthrizedResponse(error, token);
             return {action: {name: action.name}, error, data: {}};
         }));
-    }).scan((acc, curr) => {
+    })
+    .do(() => {loadingSubject.next(false);})
+    .scan((acc, curr) => {
         return Object.assign({}, acc, curr);
-    }, {}).publishReplay();
+    }, {})
+    .publishReplay();
 
     authObservable.authenticate = options => {
         authActions.next({
@@ -123,6 +129,7 @@ function auth(conn) {
             method: 'logout'
         });
     };
+    authObservable.loading = loadingSubject;
     authObservable.connect(); // TODO: get rid of dummy subscription
     return authObservable;
 }

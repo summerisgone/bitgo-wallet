@@ -1,0 +1,20 @@
+body, #app, .app {
+    height: 100%;
+}
+.app {
+    display: flex;
+    flex-direction: column;
+}
+
+.app-login {
+    margin-top: 10vh !important;
+}
+
+.app-header__logo {
+    width: 64px !important;
+    height: 64px !important;
+    margin-right: 1.5em !important;
+}
+.app-sendmoney__button {
+    float: right;
+}
