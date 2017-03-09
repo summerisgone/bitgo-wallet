@@ -28,3 +28,7 @@ You will need the following things properly installed on your computer.
 * `npm run lint`
 * `npm test`
 * `npm run coverage`
+
+### Development
+
+Follow [Dev Guide](https://github.com/summerisgone/bitgo-wallet/blob/react/docs/devguide.md) for further information about app.
