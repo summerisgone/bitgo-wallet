@@ -10,6 +10,8 @@ You will need the following things properly installed on your computer.
 * [Git](https://git-scm.com/)
 * [Node.js](https://nodejs.org/) (with NPM)
 
+Also you will need BitGo test network account, get it on [test.bitgo.com](http://test.bitgo.com/).
+
 
 ## Installation and build
 
@@ -31,4 +33,4 @@ You will need the following things properly installed on your computer.
 
 ### Development
 
-Follow [Dev Guide](https://github.com/summerisgone/bitgo-wallet/blob/react/docs/devguide.md) for further information about app.
+Follow [Dev Guide](https://github.com/summerisgone/bitgo-wallet/blob/react/docs/devguide.md ) for further information about app.
