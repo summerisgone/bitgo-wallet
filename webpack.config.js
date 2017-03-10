@@ -36,6 +36,9 @@ module.exports = {
             }
         }]
     },
+    externals: {
+        BitGo: 'BitGoJS'
+    },
     plugins: [
         new ExtractTextPlugin('styles.css'),
         new webpack.optimize.CommonsChunkPlugin({
