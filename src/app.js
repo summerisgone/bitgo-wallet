@@ -59,7 +59,7 @@ class SendMoneyComponent extends BaseComponent {
                     amount: parseFloat(this.state.amount) * 10e8,
                     walletPassphrase: this.state.password
                 }).then(result => {
-                    this.setState({result});
+                    this.setState({result, showForm: false});
                     notify.show('Transaction sent', 'success');
                 }).catch(error => {
                     this.setState({error});

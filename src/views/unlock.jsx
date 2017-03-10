@@ -21,7 +21,7 @@ function View(props) {
     const button = (<buton className="ui button" onClick={props.handleOpen}>
         {props.timeLeft > 0
             ? <div><i className="icon unlock"></i> {props.timeLeft}s</div>
-            : <i className="icon lock" title="Locked!"></i>}
+            : <div><i className="icon lock" title="Locked!"></i>Locked</div>}
     </buton>);
     return (
         <div>

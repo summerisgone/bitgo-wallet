@@ -11,16 +11,15 @@ function View(props) {
     return (
         <div className="app-frontpage">
             <div className="ui inverted teal vertical segment">
-                <div className="ui inverted teal menu">
-                    <div className="ui container">
+                <div className="ui text container">
+                    <div className="ui inverted teal menu">
                         <a className="header item">
                             <img className="app-header__logo logo"
                                 src={require('../assets/logo.svg')}
                                 alt="Bitcoin Logo"/>
-                            My Wallet
+                            {props.username}
                         </a>
-                        <div className="item right">
-                            <div className="item">Signed in as {props.username}</div>
+                        <div className="right menu">
                             <div className="item">{props.unlock}</div>
                             <div className="item">{props.signOut}</div>
                         </div>

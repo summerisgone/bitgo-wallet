@@ -1,6 +1,7 @@
 # bitgo-wallet
 
-[![Build Status](https://travis-ci.org/summerisgone/bitgo-wallet.svg?branch=react)](https://travis-ci.org/summerisgone/bitgo-wallet)
+[![Code Climate](https://lima.codeclimate.com/github/summerisgone/bitgo-wallet/badges/gpa.svg)](https://lima.codeclimate.com/github/summerisgone/bitgo-wallet)
+[ ![Codeship Status for summerisgone/bitgo-wallet](https://app.codeship.com/projects/0b2ecf50-e7ed-0134-482d-6afd4ced9a7c/status?branch=master)](https://app.codeship.com/projects/207282)
 
 # Walkthrough
 
