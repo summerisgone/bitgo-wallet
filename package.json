@@ -5,7 +5,7 @@
   "repository": "https://github.com/summerisgone/bitgo-wallet",
   "main": "src/app.js",
   "scripts": {
-    "build": "webpack -p",
+    "build": "webpack -p && sh copy_vendor.sh",
     "lint": "eslint src",
     "test": "eslint src && mocha src/test",
     "coverage": "nyc mocha src/test",
