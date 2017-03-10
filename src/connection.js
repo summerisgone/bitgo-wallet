@@ -6,21 +6,21 @@ class Connection {
     constructor (options) {
         this.options = Object.assign({}, options);
         assert(this.options.plugins, 'options.plugins is required');
-        assert(this.options.plugins.length, 'options.plugins should be array of plugins');
         this.collectPlugins(this.options.plugins);
     }
     collectPlugins (plugins) {
         // pre-register
         this._pluginFns = {};
-        plugins.forEach(plugin => {
-            assert(plugin.name, `Plugin name should be defined for ${plugin}`);
-            assert(!this._pluginFns[plugin.name], `Plugin ${plugin.name} already registered`);
-            this._pluginFns[plugin.name] = plugin;
+        Object.keys(plugins).forEach(key => {
+            const plugin = plugins[key];
+            assert(key, `Plugin name should be defined for ${plugin}`);
+            assert(!this._pluginFns[key], `Plugin ${key} already registered`);
+            this._pluginFns[key] = plugin;
         });
         // instantiate
         this.plugins = {};
-        plugins.forEach(plugin => {
-            this.plugins[plugin.name] = this.inject(plugin.name);
+        Object.keys(plugins).forEach(key => {
+            this.plugins[key] = this.inject(key);
         });
     }
     inject (pluginName) {

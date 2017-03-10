@@ -25,8 +25,8 @@ class StorageMock {
 
 
 describe('plugins', function() {
-    it('exports list of plugins', () => {
-        assert.ok(plugins.length);
+    it('exports object of plugins', () => {
+        assert.ok(Object.keys(plugins).length > 0);
     });
 });
 
